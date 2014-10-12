@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html ng-app="myApp">
+  <head>
+    <title>GAE image upload test</title>
+    <link href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css" rel="stylesheet">
+  </head>
+  <body>
+    <div class="container" ng-controller="testCtrl">
+      <h1>GAE image upload test</h1>
+
+      <section>
+        <h2>1. Get upload url</h2>
+        <p>
+          <code>GET /init</code>
+        </p>
+        <button class="btn btn-default" ng-click="getUploadURL()">Request</button>
+        <div ng-show="uploadURLResult">
+          <pre>{{uploadURLResult | json}}</pre>
+        </div>
+      </section>
+
+      <section ng-show="uploadURLResult">
+        <h2>2. POST image</h2>
+        <p>
+          <code>POST {{uploadURLResult.result.upload_url}}</code>
+        </p>
+        <div>
+          <form id="form" ng-submit="postUpload()">
+            <input type="file" ng-file-select="onFileSelect($files)">
+            <input type="input" class="form-control" name="user_id" ng-model="userId">
+            <input type="submit" class="btn btn-default" value="Request">
+          </form>
+        </div>
+        <div ng-show="uploadResult">
+          <pre>{{uploadResult | json}}</pre>
+        </div>
+        <div ng-repeat="(name, src) in images">
+          <h4>{{name}}</h4>
+          <img class="img-responsive" ng-src="{{src}}" alt="{{name}}">
+        </div>
+      </section>
+    </div><!-- /.cintainer -->
+    <script src="//code.jquery.com/jquery-1.11.1.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/danialfarid-angular-file-upload/1.6.1/angular-file-upload-shim.min.js"></script>
+    <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.2.26/angular.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/danialfarid-angular-file-upload/1.6.1/angular-file-upload.min.js"></script>
+    <script>
+      angular.module('myApp', ['angularFileUpload']);
+
+      function testCtrl($scope, $http, $upload) {
+        $scope.userId = Math.random();
+        $scope.file = null;
+
+        $scope.getUploadURL = function() {
+          $http.get('/init').success(function(data) {
+            $scope.uploadURLResult = data;
+          }).error(function() {
+            $scope.uploadURLResult = null
+            alert('error');
+          });
+        };
+
+        $scope.postUpload = function() {
+          var formData = new FormData($('#form').get(0));
+          $upload.upload({
+            url: $scope.uploadURLResult.result.upload_url,
+            data: {
+              user_id: $scope.userId
+            },
+            file: $scope.file
+          }).success(function(data) {
+            $scope.uploadResult = data;
+            $scope.images = {
+              's1600': $scope.uploadResult.result.thumb_url + '=s1600',
+              's768': $scope.uploadResult.result.thumb_url + '=s768',
+              's256': $scope.uploadResult.result.thumb_url + '=s256',
+              's32': $scope.uploadResult.result.thumb_url + '=s32',
+              '512c': $scope.uploadResult.result.thumb_url + '=s512-c',
+              '80c': $scope.uploadResult.result.thumb_url + '=s80-c',
+              'origin': $scope.uploadResult.result.origin_url,
+            };
+          }).error(function(data) {
+            $scope.uploadResult = data;
+            $scope.images = null;
+            alert('error');
+          });
+        };
+
+        $scope.onFileSelect = function($files) {
+          $scope.file = $files[0];
+        }
+      }
+    </script>
+  </body>
+</html>
