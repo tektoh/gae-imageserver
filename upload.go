@@ -59,16 +59,9 @@ func Authorize(c appengine.Context, w http.ResponseWriter, r *http.Request) bool
     query := datastore.NewQuery("Applications").Filter("AccessKey =", accessKey[0])
 
     var apps []Applications
-    if key, err := query.GetAll(c, &apps); err != nil {
-        err := WriteJsonResponse(w, http.StatusInternalServerError, "DataStore Error", nil)
-        if err != nil {
-            serveError(c, w, err)
-        }
-        return false
-    }
 
-    if len(key) == 0 {
-        err := WriteJsonResponse(w, http.StatusUnauthorized, "Application is not registed", nil)
+    if key, err := query.GetAll(c, &apps); len(key) == 0 || err != nil {
+        err := WriteJsonResponse(w, http.StatusInternalServerError, "Application is not registed", nil)
         if err != nil {
             serveError(c, w, err)
         }
