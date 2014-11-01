@@ -4,7 +4,8 @@ import (
     "fmt"
     "net/http"
     "crypto/hmac"
-    "crypto/sha1"
+    "crypto/sha256"
+    "encoding/base64"
     "appengine"
     "appengine/blobstore"
     "appengine/image"
@@ -180,9 +181,9 @@ func GetSecretKey(c appengine.Context, accessKey string) (string, error) {
 func CheckSignature(c appengine.Context, accessKey string, time string, secretKey string, signature string) bool {
     message := accessKey + "&" + time;
 
-    mac := hmac.New(sha1.New, []byte(secretKey))
+    mac := hmac.New(sha256.New, []byte(secretKey))
     mac.Write([]byte(message))
-    expectedSignature := string(mac.Sum(nil))
+    expectedSignature := base64.StdEncoding.EncodeToString(mac.Sum(nil))
 
     if signature != expectedSignature {
         c.Errorf("Bad signature: client=%s server=%s", signature, expectedSignature)

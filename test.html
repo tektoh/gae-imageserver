@@ -61,7 +61,8 @@
     <script src="//cdnjs.cloudflare.com/ajax/libs/danialfarid-angular-file-upload/1.6.1/angular-file-upload-shim.min.js"></script>
     <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.2.26/angular.min.js"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/danialfarid-angular-file-upload/1.6.1/angular-file-upload.min.js"></script>
-    <script src="//cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/rollups/hmac-sha1.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/rollups/hmac-sha256.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/components/enc-base64-min.js"></script>
     <script>
       angular.module('myApp', ['angularFileUpload']);
 
@@ -72,7 +73,7 @@
         $scope.file = null;
 
         $scope.setSignature = function() {
-          $scope.signature = CryptoJS.HmacSHA1($scope.accessKey+'&'+$scope.time, $scope.secretKey).toString();
+          $scope.signature = CryptoJS.HmacSHA256($scope.accessKey+'&'+$scope.time, $scope.secretKey).toString(CryptoJS.enc.Base64);
         }
 
         $scope.getUploadURL = function() {
