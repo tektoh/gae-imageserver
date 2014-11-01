@@ -42,7 +42,7 @@ BlobStoreに画像アップロードするためのURLを取得します。
 
 ```
 message = accessKey + "&" + expires
-urlencode(base64(hmac-sha256(message, secretKey)
+urlencode(base64(hmac-sha256(message, secretKey)))
 ```
 
 #### 署名の有効期限
