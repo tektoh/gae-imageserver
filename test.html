@@ -11,7 +11,7 @@
       <section>
         <h2>1. Get upload url</h2>
         <p>
-          <code>GET /upload?accessKey={{accessKey}}&time={{time}}&signature={{signature}}</code>
+          <code>GET /upload?accessKey={{accessKey}}&expires={{time}}&signature={{signature}}</code>
         </p>
         <form>
           <div class="form-group">
@@ -77,7 +77,10 @@
         }
 
         $scope.getUploadURL = function() {
-          $http.get('/upload?accessKey=' + $scope.accessKey + '&expires=' + $scope.expires + '&signature=' + $scope.signature).success(function(data) {
+          $http.get('/upload?accessKey=' + $scope.accessKey
+            + '&expires=' + $scope.expires
+            + '&signature=' + encodeURIComponent($scope.signature)
+          ).success(function(data) {
             $scope.uploadURLResult = data;
           }).error(function() {
             $scope.uploadURLResult = null
