@@ -9,7 +9,5 @@ handlers:
   upload: test.html
 - url: /upload
   script: _go_app
-- url: /init
-  script: _go_app
 - url: /blobstore
   script: _go_app

@@ -11,7 +11,7 @@
       <section>
         <h2>1. Get upload url</h2>
         <p>
-          <code>GET /init</code>
+          <code>GET /upload</code>
         </p>
         <button class="btn btn-default" ng-click="getUploadURL()">Request</button>
         <div ng-show="uploadURLResult">
@@ -27,7 +27,6 @@
         <div>
           <form id="form" ng-submit="postUpload()">
             <input type="file" ng-file-select="onFileSelect($files)">
-            <input type="input" class="form-control" name="user_id" ng-model="userId">
             <input type="submit" class="btn btn-default" value="Request">
           </form>
         </div>
@@ -48,11 +47,10 @@
       angular.module('myApp', ['angularFileUpload']);
 
       function testCtrl($scope, $http, $upload) {
-        $scope.userId = Math.random();
         $scope.file = null;
 
         $scope.getUploadURL = function() {
-          $http.get('/init').success(function(data) {
+          $http.get('/upload').success(function(data) {
             $scope.uploadURLResult = data;
           }).error(function() {
             $scope.uploadURLResult = null
@@ -64,9 +62,6 @@
           var formData = new FormData($('#form').get(0));
           $upload.upload({
             url: $scope.uploadURLResult.result.upload_url,
-            data: {
-              user_id: $scope.userId
-            },
             file: $scope.file
           }).success(function(data) {
             $scope.uploadResult = data;

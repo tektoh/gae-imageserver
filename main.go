@@ -14,8 +14,6 @@ func serveError(c appengine.Context, w http.ResponseWriter, err error) {
 }
 
 func init() {
-  http.HandleFunc("/init", HandleInit)
   http.HandleFunc("/upload", HandleUpload)
   http.HandleFunc("/blobstore", HandleBlobstore)
 }
-
