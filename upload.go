@@ -185,6 +185,7 @@ func CheckSignature(c appengine.Context, accessKey string, time string, secretKe
     expectedSignature := string(mac.Sum(nil))
 
     if signature != expectedSignature {
+        c.Errorf("Bad signature: client=%s server=%s", signature, expectedSignature)
         return false;
     }
 
