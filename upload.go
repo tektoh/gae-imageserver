@@ -1,6 +1,7 @@
 package imageserver
 
 import (
+    "fmt"
     "net/http"
     "crypto/hmac"
     "crypto/sha1"
@@ -11,8 +12,8 @@ import (
 )
 
 type Applications struct {
-    AccessKey string
-    SecretKey string
+    AccessKey string `datastore:"accessKey"`
+    SecretKey string `datastore:"secretKey,noindex"`
 }
 
 type ResultGetUpload struct {
@@ -26,63 +27,6 @@ type ResultPostUpload struct {
     ThumbUrl string `json:"thumb_url"`
 }
 
-func Authorize(c appengine.Context, w http.ResponseWriter, r *http.Request) bool {
-    values := r.URL.Query()
-
-    accessKey := values["accessKey"]
-    if len(accessKey) == 0 {
-        err := WriteJsonResponse(w, http.StatusUnauthorized, "Bad accessKey", nil)
-        if err != nil {
-            serveError(c, w, err)
-        }
-        return false
-    }
-
-    time := values["time"]
-    if len(time) == 0 {
-        err := WriteJsonResponse(w, http.StatusUnauthorized, "Bad time", nil)
-        if err != nil {
-            serveError(c, w, err)
-        }
-        return false
-    }
-
-    signature := values["signature"]
-    if len(signature) == 0 {
-        err := WriteJsonResponse(w, http.StatusUnauthorized, "Bad signature", nil)
-        if err != nil {
-            serveError(c, w, err)
-        }
-        return false
-    }
-
-    query := datastore.NewQuery("Applications").Filter("AccessKey =", accessKey[0])
-
-    var apps []Applications
-
-    if key, err := query.GetAll(c, &apps); len(key) == 0 || err != nil {
-        err := WriteJsonResponse(w, http.StatusInternalServerError, "Application is not registed", nil)
-        if err != nil {
-            serveError(c, w, err)
-        }
-        return false
-    }
-
-    message := accessKey[0] + "&" + time[0];
-    mac := hmac.New(sha1.New, []byte(apps[0].SecretKey))
-    mac.Write([]byte(message))
-    expectedSignature := string(mac.Sum(nil))
-
-    if signature[0] != expectedSignature {
-        err := WriteJsonResponse(w, http.StatusUnauthorized, "Bad signature: " + signature[0], nil)
-        if err != nil {
-            serveError(c, w, err)
-        }
-        return false
-    }
-
-    return true
-}
 
 func HandleUpload(w http.ResponseWriter, r *http.Request) {
     c := appengine.NewContext(r)
@@ -167,4 +111,81 @@ func PostUpload(c appengine.Context, w http.ResponseWriter, r *http.Request) {
         serveError(c, w, err)
         return
     }
+}
+
+func Authorize(c appengine.Context, w http.ResponseWriter, r *http.Request) bool {
+    values := r.URL.Query()
+
+    accessKey := values["accessKey"]
+    if len(accessKey) == 0 {
+        err := WriteJsonResponse(w, http.StatusUnauthorized, "Bad accessKey", nil)
+        if err != nil {
+            serveError(c, w, err)
+        }
+        return false
+    }
+
+    time := values["time"]
+    if len(time) == 0 {
+        err := WriteJsonResponse(w, http.StatusUnauthorized, "Bad time", nil)
+        if err != nil {
+            serveError(c, w, err)
+        }
+        return false
+    }
+
+    signature := values["signature"]
+    if len(signature) == 0 {
+        err := WriteJsonResponse(w, http.StatusUnauthorized, "Bad signature", nil)
+        if err != nil {
+            serveError(c, w, err)
+        }
+        return false
+    }
+
+    secretKey, err := GetSecretKey(c, accessKey[0])
+    if err != nil {
+        c.Errorf("%v", err)
+        err := WriteJsonResponse(w, http.StatusInternalServerError, "Application is not registed", nil)
+        if err != nil {
+            serveError(c, w, err)
+        }
+    }
+
+    if !CheckSignature(c, accessKey[0], time[0], secretKey, signature[0]) {
+        err := WriteJsonResponse(w, http.StatusUnauthorized, "Bad signature: " + signature[0], nil)
+        if err != nil {
+            serveError(c, w, err)
+        }
+        return false
+    }
+
+    return true
+}
+
+func GetSecretKey(c appengine.Context, accessKey string) (string, error) {
+
+    query := datastore.NewQuery("Applications").Filter("accessKey =", accessKey[0]).Limit(1)
+
+    var apps []Applications
+
+    if key, err := query.GetAll(c, &apps); len(key) == 0 || err != nil {
+        return "", fmt.Errorf("AccessKey %s is not found", accessKey)
+    }
+
+    return apps[0].SecretKey, nil
+}
+
+func CheckSignature(c appengine.Context, accessKey string, time string, secretKey string, signature string) bool {
+    message := accessKey + "&" + time;
+
+    mac := hmac.New(sha1.New, []byte(secretKey))
+    mac.Write([]byte(message))
+    expectedSignature := string(mac.Sum(nil))
+
+    if signature != expectedSignature {
+        return false;
+    }
+
+    return true
 }

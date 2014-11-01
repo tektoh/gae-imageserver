@@ -1,0 +1,7 @@
+indexes:
+
+- kind: Applications
+  ancestor: no
+  properties:
+  - name: accessKey
+  - name: secretKey
