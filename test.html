@@ -23,8 +23,8 @@
             <input type="text" class="form-control" ng-model="secretKey" ng-change="setSignature()">
           </div>
           <div class="form-group">
-            <label>Time (UNIX TIME)</label>
-            <input type="text" class="form-control" ng-model="time">
+            <label>Expires (UNIX TIME)</label>
+            <input type="text" class="form-control" ng-model="expires" ng-change="setSignature()">
           </div>
           <div class="form-group">
             <label>Signature</label>
@@ -69,15 +69,15 @@
       function testCtrl($scope, $http, $upload) {
         $scope.accessKey = '';
         $scope.secretKey = '';
-        $scope.time = parseInt((new Date)/1000);
+        $scope.expires = parseInt((new Date)/1000) + 3600;
         $scope.file = null;
 
         $scope.setSignature = function() {
-          $scope.signature = CryptoJS.HmacSHA256($scope.accessKey+'&'+$scope.time, $scope.secretKey).toString(CryptoJS.enc.Base64);
+          $scope.signature = CryptoJS.HmacSHA256($scope.accessKey+'&'+$scope.expires, $scope.secretKey).toString(CryptoJS.enc.Base64);
         }
 
         $scope.getUploadURL = function() {
-          $http.get('/upload?accessKey=' + $scope.accessKey + '&time=' + $scope.time + '&signature=' + $scope.signature).success(function(data) {
+          $http.get('/upload?accessKey=' + $scope.accessKey + '&expires=' + $scope.expires + '&signature=' + $scope.signature).success(function(data) {
             $scope.uploadURLResult = data;
           }).error(function() {
             $scope.uploadURLResult = null

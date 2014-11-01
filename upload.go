@@ -2,6 +2,8 @@ package imageserver
 
 import (
     "fmt"
+    "time"
+    "strconv"
     "net/http"
     "crypto/hmac"
     "crypto/sha256"
@@ -119,16 +121,35 @@ func Authorize(c appengine.Context, w http.ResponseWriter, r *http.Request) bool
 
     accessKey := values["accessKey"]
     if len(accessKey) == 0 {
-        err := WriteJsonResponse(w, http.StatusUnauthorized, "Bad accessKey", nil)
+        err := WriteJsonResponse(w, http.StatusUnauthorized, "Bad parameter: accessKey", nil)
         if err != nil {
             serveError(c, w, err)
         }
         return false
     }
 
-    time := values["time"]
-    if len(time) == 0 {
-        err := WriteJsonResponse(w, http.StatusUnauthorized, "Bad time", nil)
+    expires := values["expires"]
+    if len(expires) == 0 {
+        err := WriteJsonResponse(w, http.StatusUnauthorized, "Bad parameter: expires", nil)
+        if err != nil {
+            serveError(c, w, err)
+        }
+        return false
+    }
+
+    expiresUnix, err := strconv.ParseInt(expires[0], 10, 64)
+    if err != nil {
+        c.Errorf("%v", err)
+        err := WriteJsonResponse(w, http.StatusUnauthorized, "Bad parameter: expires", nil)
+        if err != nil {
+            serveError(c, w, err)
+        }
+        return false
+    }
+
+    nowTime := time.Now().Unix()
+    if expiresUnix < nowTime {
+        err := WriteJsonResponse(w, http.StatusUnauthorized, "Has expired", nil)
         if err != nil {
             serveError(c, w, err)
         }
@@ -137,7 +158,7 @@ func Authorize(c appengine.Context, w http.ResponseWriter, r *http.Request) bool
 
     signature := values["signature"]
     if len(signature) == 0 {
-        err := WriteJsonResponse(w, http.StatusUnauthorized, "Bad signature", nil)
+        err := WriteJsonResponse(w, http.StatusUnauthorized, "Bad parameter: signature", nil)
         if err != nil {
             serveError(c, w, err)
         }
@@ -147,15 +168,15 @@ func Authorize(c appengine.Context, w http.ResponseWriter, r *http.Request) bool
     secretKey, err := GetSecretKey(c, accessKey[0])
     if err != nil {
         c.Errorf("%v", err)
-        err := WriteJsonResponse(w, http.StatusInternalServerError, "Application is not registed", nil)
+        err := WriteJsonResponse(w, http.StatusUnauthorized, "Bad parameter: signature", nil)
         if err != nil {
             serveError(c, w, err)
         }
         return false
     }
 
-    if !CheckSignature(c, accessKey[0], time[0], secretKey, signature[0]) {
-        err := WriteJsonResponse(w, http.StatusUnauthorized, "Bad signature: " + signature[0], nil)
+    if !CheckSignature(c, accessKey[0], expires[0], secretKey, signature[0]) {
+        err := WriteJsonResponse(w, http.StatusUnauthorized, "Bad parameter: signature", nil)
         if err != nil {
             serveError(c, w, err)
         }
@@ -178,8 +199,8 @@ func GetSecretKey(c appengine.Context, accessKey string) (string, error) {
     return apps[0].SecretKey, nil
 }
 
-func CheckSignature(c appengine.Context, accessKey string, time string, secretKey string, signature string) bool {
-    message := accessKey + "&" + time;
+func CheckSignature(c appengine.Context, accessKey string, expires string, secretKey string, signature string) bool {
+    message := accessKey + "&" + expires;
 
     mac := hmac.New(sha256.New, []byte(secretKey))
     mac.Write([]byte(message))
