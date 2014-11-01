@@ -150,6 +150,7 @@ func Authorize(c appengine.Context, w http.ResponseWriter, r *http.Request) bool
         if err != nil {
             serveError(c, w, err)
         }
+        return false
     }
 
     if !CheckSignature(c, accessKey[0], time[0], secretKey, signature[0]) {
@@ -165,7 +166,7 @@ func Authorize(c appengine.Context, w http.ResponseWriter, r *http.Request) bool
 
 func GetSecretKey(c appengine.Context, accessKey string) (string, error) {
 
-    query := datastore.NewQuery("Applications").Filter("accessKey =", accessKey[0]).Limit(1)
+    query := datastore.NewQuery("Applications").Filter("accessKey =", accessKey).Limit(1)
 
     var apps []Applications
 
