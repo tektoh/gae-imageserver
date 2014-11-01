@@ -2,10 +2,18 @@ package imageserver
 
 import (
     "net/http"
+    "crypto/hmac"
+    "crypto/sha1"
     "appengine"
     "appengine/blobstore"
     "appengine/image"
+    "appengine/datastore"
 )
+
+type Applications struct {
+    AccessKey string
+    SecretKey string
+}
 
 type ResultGetUpload struct {
   UploadURL string `json:"upload_url"`
@@ -18,18 +26,88 @@ type ResultPostUpload struct {
     ThumbUrl string `json:"thumb_url"`
 }
 
+func Authorize(c appengine.Context, w http.ResponseWriter, r *http.Request) bool {
+    values := r.URL.Query()
+
+    accessKey := values["accessKey"]
+    if len(accessKey) == 0 {
+        err := WriteJsonResponse(w, http.StatusUnauthorized, "Bad accessKey", nil)
+        if err != nil {
+            serveError(c, w, err)
+        }
+        return false
+    }
+
+    time := values["time"]
+    if len(time) == 0 {
+        err := WriteJsonResponse(w, http.StatusUnauthorized, "Bad time", nil)
+        if err != nil {
+            serveError(c, w, err)
+        }
+        return false
+    }
+
+    signature := values["signature"]
+    if len(signature) == 0 {
+        err := WriteJsonResponse(w, http.StatusUnauthorized, "Bad signature", nil)
+        if err != nil {
+            serveError(c, w, err)
+        }
+        return false
+    }
+
+    query := datastore.NewQuery("Applications").Filter("AccessKey =", accessKey[0])
+
+    var apps []*Applications
+    if _, err := query.GetAll(c, &apps); err != nil {
+        err := WriteJsonResponse(w, http.StatusInternalServerError, "DataStore Error", nil)
+        if err != nil {
+            serveError(c, w, err)
+        }
+        return false
+    }
+
+    if len(apps) == 0 {
+        err := WriteJsonResponse(w, http.StatusUnauthorized, "Application is not registed", nil)
+        if err != nil {
+            serveError(c, w, err)
+        }
+        return false
+    }
+
+    message := accessKey[0] + "&" + time[0];
+    mac := hmac.New(sha1.New, []byte(apps[0].SecretKey))
+    mac.Write([]byte(message))
+    expectedSignature := string(mac.Sum(nil))
+
+    if signature[0] != expectedSignature {
+        err := WriteJsonResponse(w, http.StatusUnauthorized, "Bad signature: " + signature[0], nil)
+        if err != nil {
+            serveError(c, w, err)
+        }
+        return false
+    }
+
+    return true
+}
+
 func HandleUpload(w http.ResponseWriter, r *http.Request) {
+    c := appengine.NewContext(r)
+
     switch r.Method {
     case "POST","PUT":
-        PostUpload(w, r)
+        PostUpload(c, w, r)
     default:
-        GetUpload(w, r)
+        GetUpload(c, w, r)
     }
 }
 
-func GetUpload(w http.ResponseWriter, r *http.Request) {
+func GetUpload(c appengine.Context, w http.ResponseWriter, r *http.Request) {
     var err error
-    c := appengine.NewContext(r)
+
+    if !Authorize(c, w, r) {
+        return
+    }
 
     uploadURL, err := blobstore.UploadURL(c, "/upload", nil)
 
@@ -48,9 +126,8 @@ func GetUpload(w http.ResponseWriter, r *http.Request) {
     }
 }
 
-func PostUpload(w http.ResponseWriter, r *http.Request) {
+func PostUpload(c appengine.Context, w http.ResponseWriter, r *http.Request) {
     var err error
-    c := appengine.NewContext(r)
 
     blobs, _, err := blobstore.ParseUpload(r)
 
