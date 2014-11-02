@@ -57,6 +57,12 @@ urlencode(base64(hmac-sha256(message, secretKey)))
 ### POST /_ah/upload
 * `GET /upload` で取得できたURLに画像ファイルをPOSTします。
 
+#### リクエストデータ
+
+multipart/form-data 形式。
+
+* file: 画像ファイル
+
 #### レスポンスデータ
 * status: ステータスコード（HTTPレスポンスと同じ)
 * message: エラーメッセージ
