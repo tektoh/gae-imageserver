@@ -1,12 +1,29 @@
 # gae-imageserver
 
-GoogleAppEngine上で動作する画像アップロードサーバーです。
-オリジナル画像の保存、サムネイルの生成を行います。
+* GoogleAppEngine上で動作する画像アップロードサーバーです。
+* オリジナル画像の保存、サムネイルの生成を行います。
+
+## GoogleAppEngineについて
+
+* Google製のPaaSです。
+    * https://cloud.google.com/appengine/
+* インスタンスの1リクエスト処理が60秒を超えるとエラーになります。
+    * https://cloud.google.com/appengine/articles/deadlineexceedederrors
+* HTTPリクエストの最大サイズは32MBです。
+    * https://cloud.google.com/appengine/docs/quotas#Requests
+* この画像サーバーはAppEngineの`BlobStore`、`Images Service`を利用しています。
+    * BlobStore: https://cloud.google.com/appengine/docs/go/blobstore/
+        * CloudStorageへのファイルアップロード機能を簡単に実装できます
+        * ファイルへのアクセスにはアップロード時に発行される`BlobKey`を使用します。
+    * Images: https://cloud.google.com/appengine/docs/go/images/
+        * `BlobStore`にアップロードされた画像ファイルのサムネイルを作成します。
+        * 0～1600pxの間で自由なサイズのサムネイルを動的に取得できます。
 
 ## API
 
 ### GET /upload
-BlobStoreに画像アップロードするためのURLを取得します。
+* BlobStoreに画像アップロードするためのURLを取得します。
+* 署名によるクライアント認証を行います。
 
 #### クエリパラメータ
 * accessKey: アクセスキー
@@ -56,6 +73,7 @@ urlencode(base64(hmac-sha256(message, secretKey)))
 
 ### POST /_ah/upload
 * `GET /upload` で取得できたURLに画像ファイルをPOSTします。
+* AppEngineにより長いURLが発行されるため、認証は行っていません。
 
 #### リクエストデータ
 
@@ -87,12 +105,41 @@ multipart/form-data 形式。
 
 ### GET /blobstore
 
-BlobStoreからオリジナル画像を取り出します。
+* BlobStoreからオリジナル画像を取り出します。
+* AppEngineにより長いオブジェクトキーが発行されるため、認証は行っていません。
+
+#### クエリパラメータ
+* blobKey: BlobStoreのKey
+
+```
+/blobstore?blobKey=AMIfv97ZUCKTJf1-AdenPtrCbXCJkfyxzw0LVjJxY-4KLEWGHu67aZRZKwkW3Itkda9esI3Wt1jKvJ2Usr0E5h4NfFCYV7-J5VJJC_deaJFqLlfPAQYWqatZaWtcM_JLOq6drJ6__8CTTQAb5gRTyUZJYA0ZeSa2XDGyR98UfswpNWhnVX_m4bo
+```
 
 ### DELETE /blobstore
 
-BlobStoreからオリジナル画像を削除します。
+* BlobStoreからオリジナル画像を削除します。
+
+#### クエリパラメータ
+* blobKey: BlobStoreのKey
+
+```
+/blobstore?blobKey=AMIfv97ZUCKTJf1-AdenPtrCbXCJkfyxzw0LVjJxY-4KLEWGHu67aZRZKwkW3Itkda9esI3Wt1jKvJ2Usr0E5h4NfFCYV7-J5VJJC_deaJFqLlfPAQYWqatZaWtcM_JLOq6drJ6__8CTTQAb5gRTyUZJYA0ZeSa2XDGyR98UfswpNWhnVX_m4bo
+```
 
 ### サムネイルのURL
 0〜1600ピクセルの間で画像サイズを指定できます。GoogleAppEngineのドキュメントを参照してください。    
 https://cloud.google.com/appengine/docs/go/images/#Go_Serving_and_re-sizing_images_from_the_Blobstore
+
+URLは以下の様になります。オリジナル画像をアップロードしたAppEngineとは別インスタンス（おそらくPicasa）になります。
+```
+http://your_app_id.appspot.com/randomStringImageId
+```
+
+URLの末尾に`=sxxx`もしくは`=sxxx-c`を加えることでサムネイル画像のサイズを自由に指定できます。
+```
+// Resize the image to 32 pixels (aspect-ratio preserved)
+http://your_app_id.appspot.com/randomStringImageId=s32
+
+// Crop the image to 32 pixels
+http://your_app_id.appspot.com/randomStringImageId=s32-c
+```
