@@ -1,4 +1,4 @@
-package imageserver
+package handler
 
 import (
     "net/http"

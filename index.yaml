@@ -5,3 +5,11 @@ indexes:
   properties:
   - name: accessKey
   - name: secretKey
+- kind: ImageInfo
+  ancestor: no
+  properties:
+  - name: blobKey
+  - name: contentType
+  - name: originSize
+  - name: originUrl
+  - name: thumbUrl

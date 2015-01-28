@@ -1,0 +1,3 @@
+[submodule "github.com/famz/RFC2047"]
+	path = github.com/famz/RFC2047
+	url = git@github.com:famz/RFC2047.git
