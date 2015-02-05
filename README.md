@@ -30,6 +30,14 @@
 /upload?accessKey=eKWuZo6wDXJyuciVQkHMu6Bd5eZLLukh&expires=1414857216&signature=PtemPdruhb3d%2Bq5AoiAQRIBDR9oO5BzukmQ4D5GcINo%3D
 ```
 
+#### リクエストヘッダー
+署名の情報をリクエストヘッダーに含めることもできます。
+
+* X-Imageserver-Access-Key: アクセスキー
+* X-Imageserver-Signature: 署名
+* X-Imageserver-Expires: 署名の有効期限
+
+
 #### レスポンスデータ
 * status: ステータスコード（HTTPレスポンスと同じ)
 * message: エラーメッセージ
