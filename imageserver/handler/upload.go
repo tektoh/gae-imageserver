@@ -27,6 +27,7 @@ func Upload(w http.ResponseWriter, r *http.Request) {
         if err != nil {
             ServeError(c, w, err)
         }
+        c.Infof("Upload: Bad method: "+r.Method)
         return
     }
 
@@ -44,6 +45,7 @@ func Upload(w http.ResponseWriter, r *http.Request) {
         if err != nil {
             ServeError(c, w, err)
         }
+        c.Infof("Upload: No file uploaded")
         return
     }
 
@@ -53,6 +55,7 @@ func Upload(w http.ResponseWriter, r *http.Request) {
         if err != nil {
             ServeError(c, w, err)
         }
+        c.Infof("Upload: Bad mimetype: "+file[0].ContentType)
         return
     }
 
@@ -73,15 +76,12 @@ func Upload(w http.ResponseWriter, r *http.Request) {
     imageInfo := info.NewImageInfo(c, blobKey)
 
     if err = imageInfo.Save(originUrl, originSize, filename, contentType, strThumbUrl); err != nil {
-
         err = blobstore.Delete(c, file[0].BlobKey)
-
         err = WriteJsonResponse(w, http.StatusBadRequest, "Save failed", nil)
-
         if err != nil {
             ServeError(c, w, err)
         }
-
+        c.Errorf("Upload: Save failed")
         return
     }
 
